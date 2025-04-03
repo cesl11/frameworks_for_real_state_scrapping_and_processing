@@ -1,1 +1,2 @@
-# frameworks_for_real_state_scrapping_and_processing
+# Developing Python frameworks for real state data handling
+------------------------------------------------------------
