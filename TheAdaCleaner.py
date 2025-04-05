@@ -35,7 +35,7 @@ class PriceCleaner(Cleaner):
             elif any(x in value for x in ['USD', 'US', 'US$', 'us']):
                 return 'USD'
             else:
-                return None
+                return 'MXN' # set default currency as mexican pesos
         
         # check if the Pandas series given contains only string values and if not, convert to it
         df['price'] = df['price'].astype(str)
@@ -67,8 +67,23 @@ class LocationCleaner(Cleaner):
         df['location'] = df['location'].apply(extract_neighborhood)
         
         return df
-    
 
+
+class BedroomsCleaner(Cleaner):
+    def clean(self, df:pd.DataFrame) -> pd.DataFrame:
+        df['bedrooms'] = df['bedrooms'].str.replace(r'[^\d.]', '', regex=True).str.strip()    
+        df['bedrooms'] = df['bedrooms'].astype(float)
+        
+        return df
+
+class BathroomsCleaner(Cleaner):
+    def clean(self, df:pd.DataFrame) -> pd.DataFrame:
+        df['bathrooms'] = df['bathrooms'].str.replace(r'[^\d.]', '', regex=True).str.strip()    
+        df['bathrooms'] = df['bathrooms'].astype(float)
+        
+        return df
+
+        
 class AreaCleaner(Cleaner):
     def clean(self, df:pd.DataFrame) -> pd.DataFrame:
         df['area'] = df['area'].str.strip().str.slice(0, -2)
@@ -106,6 +121,8 @@ class Ada:
         cleaners_ = {
             'price':PriceCleaner,
             'location':LocationCleaner,
+            'bedrooms':BedroomsCleaner,
+            'bathrooms':BathroomsCleaner,
             'area':AreaCleaner,
             'parkings':ParkingsCleaner
         }
