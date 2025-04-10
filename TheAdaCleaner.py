@@ -201,8 +201,10 @@ class Ada:
         for cleaner in self.cleaners:
             df = cleaner.clean(df)
 
+        return df
+    
+    def set_register_date(self, df:pd.DataFrame) -> pd.DataFrame:
         df['register_date'] = dt.datetime.now().strftime('%Y-%m-%d %H:%M')
-
         return df
 
     def reorganize(self, df:pd.DataFrame) -> pd.DataFrame:
