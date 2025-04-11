@@ -85,8 +85,8 @@ class LocationCleaner(Cleaner):
     def clean(self, df:pd.DataFrame) -> pd.DataFrame:
 
         def extract_property_type(value:str) -> str:
-            posible_house_denominations = ['Casa en', 'Casa', 'casa en', 'casa']
             posible_condo_denominations = ['condominio', 'Condominio', 'Casa condominio', 'casa condominio', 'Condominio', 'condominio']
+            posible_house_denominations = ['Casa en', 'Casa', 'casa en', 'casa']
             posible_apartments_denominations = ['Departamento en', 'departamento en', 'Departamento', 'departamento', 'Dpto.', 'dpto.', 'Dpto', 'dpto']
             if any(x in value for x in posible_condo_denominations):
                 return 'Casa condominio'
@@ -101,17 +101,37 @@ class LocationCleaner(Cleaner):
             new_value = re.sub(r'(?:Casa en(?: condominio)?|Departamento en)?', '', value)
             return new_value
 
-        def drop_postal_codes_and_street_numbers(value:str) -> str:
-            new_value = re.sub(r'\d', '', value).strip()
-            renew_value = re.sub(r'Calle', '', new_value)
-            return renew_value.strip()
+        def drop_postal_codes_and_street_numbers(value: str) -> str:
+            # replace jumplines by commas
+            new_value1 = re.sub(r'\n', ',', value).strip()
 
-        def extract_neighborhood(value:str) -> str:
-            match = re.search(r'\s*(?:en\s)?([\w\sáéíóúÁÉÍÓÚñÑüÜ]+?)(?=,|$)', value)
+            # drop postal codes
+            new_value2 = re.sub(r'\b\d{5}\b', '', new_value1)
+
+            # drop streets numbers
+            new_value3 = re.sub(r'\b(?:#|No\.?)\s*\d+\b', '', new_value2, flags=re.IGNORECASE)
+            new_value4 = re.sub(r'(^|\s|,)\d{1,4}($|\s|,)', r'\1\2', new_value3)
+
+            # Drops 'Calle' but only if it is separated from other large words
+            new_value5 = re.sub(r'\bCalle\b', '', new_value4, flags=re.IGNORECASE)
+
+            # drop trash commas and blank spaces 
+            new_value6 = re.sub(r',+', ',', new_value5)
+            return new_value6.strip(' ,')
+
+        def extract_neighborhood(value: str) -> str:
+            # Look for the part immediately before 'La Paz'
+            match = re.search(r',\s*([^,]+?)\s*,\s*La Paz\b', value)
             if match:
-                    neighborhood = match.group(1).strip()
-                    if len(neighborhood) > 1:
-                            return f'{neighborhood}, La Paz, Baja California Sur, Mexico'
+                neighborhood = match.group(1).strip()
+                if neighborhood:
+                    return f'{neighborhood.title()}, La Paz, Baja California Sur, Mexico'
+            # Fallback to original pattern if 'La Paz' isn't found
+            match_fallback = re.search(r'\s*(?:en\s)?([\w\sáéíóúÁÉÍÓÚñÑüÜ]+?)(?=,|$)', value)
+            if match_fallback:
+                neighborhood = match_fallback.group(1).strip()
+                if len(neighborhood) > 1:
+                    return f'{neighborhood.title()}, La Paz, Baja California Sur, Mexico'
             return 'Unknown, La Paz, Baja California Sur'
 
 
