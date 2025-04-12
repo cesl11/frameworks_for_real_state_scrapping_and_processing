@@ -76,7 +76,10 @@ class PriceCurrencyUpdater(Cleaner):
                 raise Exception(f'API failed. Status code: {response.status_code}')
 
         mxn_exchange_rate = get_real_time_exchange_rate()
-        df['price_in_mxn'] = df[df['listed_in']=='USD']['price'].apply(lambda x: round(x * mxn_exchange_rate, 2))
+        
+        df['price_in_mxn'] = df['price']
+        usd_mks = df['listed_in'] == 'USD'
+        df.loc[usd_mks, 'price_in_mxn'] = df[usd_mks]['price'].apply(lambda x: round(x * mxn_exchange_rate, 2))
               
         return df
 
@@ -177,19 +180,9 @@ class AreaCleaner(Cleaner):
 
 class ParkingsCleaner(Cleaner):
     def clean(self, df:pd.DataFrame) -> pd.DataFrame:
-        
-        def normalize_parkings(value:str) -> str:
-            if not isinstance(value,str):
-                return '1'
-            
-            new_value = re.sub(r'(?:Estacionamiento|Parking|estacionamiento|parqueadero|car\s+park)', '1', value, flags=re.IGNORECASE)
-            return new_value
 
-        df['parkings'] = df['parkings'].astype(str)
-
-        # replace all non-numeric characters using regex
-        df['parkings'] = df['parkings'].apply(normalize_parkings)
         df['parkings'] = df['parkings'].str.replace(r'\D', '', regex=True).str.strip()
+        df['parkings'] = df['parkings'].str.strip().replace('', '1').str.strip()
 
         # convert results in numeric values
         df['parkings'] = pd.to_numeric(df['parkings'], errors='coerce')
